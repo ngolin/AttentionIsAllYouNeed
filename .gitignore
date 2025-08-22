@@ -1,0 +1,7 @@
+*
+!/data
+!/data/*.txt
+
+!.gitignore
+!README.md
+!*.py
