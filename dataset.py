@@ -2,7 +2,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, DataLoader, random_split
 
-pad, sos, eos, seq_len = 0, 1, 2, 12
+pad, sos, eos, seq_len = 0, 1, 1, 12
 
 
 class WordStat:

@@ -3,7 +3,7 @@ import torch
 import random
 from torch import nn, optim
 from model import Transformer
-from dataset import get_dataset, cmn_words, eng_words, seq_len
+from dataset import get_dataset, cmn_words, eng_words, seq_len, eos
 
 torch.manual_seed(9527), random.seed(7527)
 
@@ -37,7 +37,7 @@ def eval(model, dataloader, print_result):
         for _ in range(seq_len - 1):
             logits = model(x, y).argmax(dim=-1)
             y = torch.concat([y, logits[:, -1:]], dim=-1)
-            if y[0, -1].item() == 2:
+            if y[0, -1].item() == eos:
                 break
         print_result(
             [index for index in x.view(-1).tolist() if index > 2],
