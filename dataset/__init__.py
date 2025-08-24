@@ -2,7 +2,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, DataLoader, random_split
 
-pad, sos, eos, seq_len = 0, 1, 2, 12
+pad, bos, seq_len = 0, 1, 12
 
 
 class WordStat:
@@ -46,7 +46,7 @@ class WordStat:
         return cmn_eng, sorted_words(cmn_w2c), sorted_words(eng_w2c)
 
 
-cmn_eng, cmn_words, eng_words = WordStat("./data/cmn-eng.txt").take(
+cmn_eng, cmn_words, eng_words = WordStat("./dataset/cmn-eng.txt").take(
     min_count=5, max_length=seq_len - 3
 )
 
@@ -55,8 +55,8 @@ class Dataset(Dataset):
     def __init__(self, cmn_eng, cmn_words, eng_words):
         self.data = []
         for cmn, eng in cmn_eng:
-            x = [sos, *(cmn_words.index(w) + 3 for w in cmn), eos][1:-1]
-            y = [sos, *(eng_words.index(w) + 3 for w in eng), eos]
+            x = [cmn_words.index(w) + 3 for w in cmn]
+            y = [bos, *(eng_words.index(w) + 3 for w in eng), bos]
             self.data.append((torch.tensor(x), torch.tensor(y)))
 
     def __getitem__(self, index):
@@ -83,13 +83,3 @@ def get_dataset(batch_size=32):
     test_loader = DataLoader(test_data)
 
     return train_loader, test_loader
-
-
-if __name__ == "__main__":
-    torch.manual_seed(9527)
-    print(len(cmn_eng), len(cmn_words) + 3, len(eng_words) + 3)
-    train_loader, test_loader = get_dataset()
-    for train, test in zip(*get_dataset()):
-        print(*map(lambda x: x.shape, train))
-        print(*test, sep="\n")
-        break
