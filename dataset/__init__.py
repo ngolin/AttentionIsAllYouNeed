@@ -2,7 +2,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, DataLoader, random_split
 
-pad, bos, seq_len = 0, 1, 12
+pad, bos, seq_len = 0, 1, 10
 
 
 class WordStat:
@@ -47,7 +47,7 @@ class WordStat:
 
 
 cmn_eng, cmn_words, eng_words = WordStat("./dataset/cmn-eng.txt").take(
-    min_count=5, max_length=seq_len - 3
+    min_count=5, max_length=seq_len - 1
 )
 
 
@@ -55,8 +55,8 @@ class Dataset(Dataset):
     def __init__(self, cmn_eng, cmn_words, eng_words):
         self.data = []
         for cmn, eng in cmn_eng:
-            x = [cmn_words.index(w) + 3 for w in cmn]
-            y = [bos, *(eng_words.index(w) + 3 for w in eng), bos]
+            x = [cmn_words.index(w) + 2 for w in cmn]
+            y = [bos, *(eng_words.index(w) + 2 for w in eng), bos]
             self.data.append((torch.tensor(x), torch.tensor(y)))
 
     def __getitem__(self, index):

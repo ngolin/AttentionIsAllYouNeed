@@ -19,11 +19,9 @@ class Transformer(nn.Module):
         self.pad = padding_idx
 
     def forward(self, inputs, outputs):
-        x, mx, y, my = *self.feature(inputs), *self.feature(outputs)
+        x, mx = self.out(self.emi(inputs) + self.pos(inputs)), inputs == self.pad
+        y, my = self.out(self.emo(outputs) + self.pos(outputs)), outputs == self.pad
         return self.decoder(self.encoder(x, mx), mx, y, my)
-
-    def feature(self, indices):
-        return self.out(self.emi(indices) + self.pos(indices)), indices == self.pad
 
 
 class Encoder(nn.ModuleList):
@@ -93,10 +91,11 @@ class MultiHeadAttention(nn.ModuleList):
             x.view(*x.shape[:-1], n_head, -1).transpose(-3, -2)
             for x in (f(x) for f, x in zip(self, qkv))
         )
-        w = q @ k.mT / math.sqrt(q.size(-1))
         m = m | (~m).triu(1) if self.casual else m
+        w = q @ k.mT / math.sqrt(q.size(-1))
         w = w.masked_fill(m.unsqueeze(-3), float("-inf"))
-        v = (w.softmax(dim=-1).nan_to_num(0) @ v).transpose(-3, -2)
+        w = w.softmax(dim=-1).nan_to_num(0)
+        v = (w @ v).transpose(-3, -2)
         v = v.reshape(*v.shape[:-2], -1)
         return self.lin(v)
 
@@ -126,9 +125,12 @@ class PositionalEncoding(nn.Module):
 
 
 if __name__ == "__main__":
-    input_size, output_size, batch_size = 3234, 2313, 32
-    model = Transformer(input_size, output_size)
-    inputs = torch.randint(input_size, (batch_size, 10))
-    outputs = torch.randint(output_size, (batch_size, 20))
+    from dataset import cmn_words, eng_words, seq_len, pad
+
+    batch_size, input_size, output_size = 32, len(cmn_words) + 2, len(eng_words) + 2
+    model = Transformer(input_size, output_size, max_len=seq_len, padding_idx=pad)
+
+    inputs = torch.randint(input_size, (batch_size, seq_len))
+    outputs = torch.randint(output_size, (batch_size, seq_len))
     assert model(inputs, outputs).argmax(dim=-1).shape == outputs.shape
     print(model)
