@@ -127,7 +127,7 @@ class PositionalEncoding(nn.Module):
 if __name__ == "__main__":
     from dataset import cmn_words, eng_words, seq_len, pad
 
-    batch_size, input_size, output_size = 32, len(cmn_words) + 2, len(eng_words) + 2
+    batch_size, input_size, output_size = 32, len(cmn_words) + 3, len(eng_words) + 3
     model = Transformer(input_size, output_size, max_len=seq_len, padding_idx=pad)
 
     inputs = torch.randint(input_size, (batch_size, seq_len))
