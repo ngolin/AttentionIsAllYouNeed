@@ -127,6 +127,54 @@ S3',S',512
 
 所谓的加权求和，就是一个 Sequence 转换成另一个 Sequence, 新 Sequence 的每个 Token 为旧 Sequence 所有 Tokens 加权求和所得，也就是每个 Token 都融合了所有 Tokens 的信息。由于每个 Token 都要依赖上下文才能明确自身语义，加权求和正是出于这个考虑，每个 Token 都可以融合其他所有 Token 的信息来明确自身的语义，不同大小的权重分配代表不同程度的依赖。
 
+```mermaid
+block
+columns 21
+  S1 space:4
+  S2 space:4
+  S3 space:4
+  S4 space:4
+  S5
+
+  space:84
+
+  S1' space:4
+  S2' space:4
+  S3' space:4
+  S4' space:4
+  S5'
+
+  S1 --> S1'
+  S2 --> S1'
+  S3 --> S1'
+  S4 --> S1'
+  S5 --> S1'
+
+  S1 --> S2'
+  S2 --> S2'
+  S3 --> S2'
+  S4 --> S2'
+  S5 --> S2'
+
+  S1 --> S3'
+  S2 --> S3'
+  S3 --> S3'
+  S4 --> S3'
+  S5 --> S3'
+
+  S1 --> S4'
+  S2 --> S4'
+  S3 --> S4'
+  S4 --> S4'
+  S5 --> S4'
+
+  S1 --> S5'
+  S2 --> S5'
+  S3 --> S5'
+  S4 --> S5'
+  S5 --> S5'
+```
+
 #### 1.2 为什么要对权重缩放并归一化?
 
 #### 1.3 注意力权重掩码有什么作用呢？
