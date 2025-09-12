@@ -32,13 +32,98 @@ Transformer 架构作为大语言模型（LLM）的基石，起源于 [Attention
 
 注意力的核心计算逻辑同样是 $\mathbf{Y} = \mathbf{W} \cdot \mathbf{X}$, 只不过细节上有些调整，也换了不同的名称 $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$。如果 $\mathbf{Q}$, $\mathbf{K}$, $\mathbf{V}$ 来自同一个 Sequence 的线性变换，则称为**自注意力**；如果 $\mathbf{Q}$ 来自 $\mathbf{T} = [\mathbf{T}_1, \mathbf{T}_2, \dots, \mathbf{T}_T]$, 而 $\mathbf{K}$, $\mathbf{V}$ 来自不同的 $\mathbf{S} = [\mathbf{S}_1, \mathbf{S}_2, \dots, \mathbf{S}_S]$, 则称为**交叉注意力**；在自回归生成模型中，模型逐个生成 Token, 因此在训练时当前 Token 不能之后的 Tokens 加权求和，称为**因果注意力**。
 
-|              |                                                                                                                                   **自注意力**                                                                                                                                    |                                                                                                                                                                             **因果自注意力**                                                                                                                                                                             |                                                                                                                                                            **交叉注意力**                                                                                                                                                             |
-| :----------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| **输入变换** |                                                                        $\mathbf{Q} = \text{Linear}(\mathbf{S})$<br/>$\mathbf{K} = \text{Linear}(\mathbf{S})$<br/>$\mathbf{V} = \text{Linear}(\mathbf{S})$                                                                         |                                                                                                                    $\mathbf{Q} = \text{Linear}(\mathbf{T})$<br/>$\mathbf{K} = \text{Linear}(\mathbf{T})$<br/>$\mathbf{V} = \text{Linear}(\mathbf{T})$                                                                                                                    |                                                                                     $\mathbf{Q} = \text{Linear}(\mathbf{T} ^ \prime)$<br/>$\mathbf{K} = \text{Linear}(\mathbf{S} ^ \prime)$<br/>$\mathbf{V} = \text{Linear}(\mathbf{S} ^ \prime)$                                                                                     |
-| **加权求和** | $\mathbf{S} = \text{SelfAttention}(\mathbf{S}) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}})$<br/>$W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leq (i, j) \leq S$ | $\mathbf{T} = \text{CasualSelfAttention}(\mathbf{T}) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}} + \mathbf{M})$ <br/> $W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leq (i, j) \leq T$ <br/> $M _ {ij} = 0 \text{ if } i \geq j \text{ else } {-\infty}$ | $\mathbf{T} ^ \prime = \text{CrossAttention}(\mathbf{T} ^ \prime, \mathbf{S} ^ \prime) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}})$<br/>$W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leq i \leq T, 1 \leq j \leq S$ |
-| **输出变换** |                                                                                                                 $\mathbf{S} ^ \prime = \text{Linear}(\mathbf{S})$                                                                                                                 |                                                                                                                                                            $\mathbf{T} ^ \prime = \text{Linear}(\mathbf{T})$                                                                                                                                                             |                                                                                                                                      $\mathbf{T} ^ \prime = \text{Linear}(\mathbf{T} ^ \prime)$                                                                                                                                       |
+|                                                                                                                                        **自注意力**                                                                                                                                         |                                                                                                                                                                                **因果自注意力**                                                                                                                                                                                 |                                                                                                                                                                      **交叉注意力**                                                                                                                                                                       |
+| :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|                                                                             $\mathbf{Q} = \text{Linear}(\mathbf{S})$<br/>$\mathbf{K} = \text{Linear}(\mathbf{S})$<br/>$\mathbf{V} = \text{Linear}(\mathbf{S})$                                                                              |                                                                                                                       $\mathbf{Q} = \text{Linear}(\mathbf{T})$<br/>$\mathbf{K} = \text{Linear}(\mathbf{T})$<br/>$\mathbf{V} = \text{Linear}(\mathbf{T})$                                                                                                                        |                                                                                               $\mathbf{Q} = \text{Linear}(\mathbf{T} ^ \prime)$<br/>$\mathbf{K} = \text{Linear}(\mathbf{S} ^ \prime)$<br/>$\mathbf{V} = \text{Linear}(\mathbf{S} ^ \prime)$                                                                                               |
+| $\mathbf{S} = \text{SelfAttention}(\mathbf{S}) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}})$<br/>$W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leqslant (i, j) \leqslant S$ | $\mathbf{T} = \text{CasualSelfAttention}(\mathbf{T}) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}} + \mathbf{M})$ <br/> $W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leqslant (i, j) \leqslant T$ <br/> $M _ {ij} = 0 \text{ if } i < j \text{ else } {-\infty}$ | $\mathbf{T} ^ \prime = \text{CrossAttention}(\mathbf{T} ^ \prime, \mathbf{S} ^ \prime) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}})$<br/>$W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leqslant i \leqslant T, 1 \leqslant j \leqslant S$ |
+|                                                                                                                      $\mathbf{S} ^ \prime = \text{Linear}(\mathbf{S})$                                                                                                                      |                                                                                                                                                                $\mathbf{T} ^ \prime = \text{Linear}(\mathbf{T})$                                                                                                                                                                |                                                                                                                                                $\mathbf{T} ^ \prime = \text{Linear}(\mathbf{T} ^ \prime)$                                                                                                                                                 |
 
 在 Transformer 架构中，编码器有一种自注意力，解码器有一种因果自注意力和交叉注意力。每种注意力都有 6 层 8 头，共 48 个注意力。所谓的 6 层，其实就是重复 6 次；正因为不止 1 头，才叫**多头注意力**。所谓的 8 头，就是把词嵌入的 512 维分为 8 组每组 64 维分别进行注意力加权求和，可以理解为 8 头注意力支持对一个 Token 多达 8 个不同的语义分别应用注意力机制。
+
+```mermaid
+---
+config:
+  sankey:
+    width: 1000
+---
+sankey
+
+S,S1,512
+S,S2,512
+S,S3,512
+
+S1,H1,64
+S2,H1,64
+S3,H1,64
+
+S1,H2,64
+S2,H2,64
+S3,H2,64
+
+S1,H3,64
+S2,H3,64
+S3,H3,64
+
+S1,H4,64
+S2,H4,64
+S3,H4,64
+
+S1,H5,64
+S2,H5,64
+S3,H5,64
+
+S1,H6,64
+S2,H6,64
+S3,H6,64
+
+S1,H7,64
+S2,H7,64
+S3,H7,64
+
+S1,H8,64
+S2,H8,64
+S3,H8,64
+
+H1,Attention(H1),192
+H2,Attention(H2),192
+H3,Attention(H3),192
+H4,Attention(H4),192
+H5,Attention(H5),192
+H6,Attention(H6),192
+H7,Attention(H7),192
+H8,Attention(H8),192
+
+Attention(H1),S1',64
+Attention(H2),S1',64
+Attention(H3),S1',64
+Attention(H4),S1',64
+Attention(H5),S1',64
+Attention(H6),S1',64
+Attention(H7),S1',64
+Attention(H8),S1',64
+
+Attention(H1),S2',64
+Attention(H2),S2',64
+Attention(H3),S2',64
+Attention(H4),S2',64
+Attention(H5),S2',64
+Attention(H6),S2',64
+Attention(H7),S2',64
+Attention(H8),S2',64
+
+Attention(H1),S3',64
+Attention(H2),S3',64
+Attention(H3),S3',64
+Attention(H4),S3',64
+Attention(H5),S3',64
+Attention(H6),S3',64
+Attention(H7),S3',64
+Attention(H8),S3',64
+
+S1',S',512
+S2',S',512
+S3',S',512
+```
 
 所谓的加权求和，就是一个 Sequence 转换成另一个 Sequence, 新 Sequence 的每个 Token 为旧 Sequence 所有 Tokens 加权求和所得，也就是每个 Token 都融合了所有 Tokens 的信息。由于每个 Token 都要依赖上下文才能明确自身语义，加权求和正是出于这个考虑，每个 Token 都可以融合其他所有 Token 的信息来明确自身的语义，不同大小的权重分配代表不同程度的依赖。
 
