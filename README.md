@@ -132,98 +132,105 @@ S3',S',512
 ```mermaid
 block
 columns 36
-  S1 space:4
-  S2 space:4
-  S3 space:4
-  S4 space:4
-  T1 space:4
-  T2 space:4
-  T3 space:4
-  T4
+  S1 space:4 S2 space:4 S3 space:4 S4 space:4 T1 space:4 T2 space:4 T3 space:4 T4
 
   space:144
 
-  S1' space:4
-  S2' space:4
-  S3' space:4
-  S4' space:4
-  T1' space:4
-  T2' space:4
-  T3' space:4
-  T4'
+  S1' space:4 S2' space:4 S3' space:4 S4' space:4 T1' space:4 T2' space:4 T3' space:4 T4'
 
   space:288
 
-  space:10
-  T1" space:4
-  T2" space:4
-  T3" space:4
-  T4"
+  space:10 T1" space:4 T2" space:4 T3" space:4 T4"
 
+  S1 --> S1' S2 --> S1' S3 --> S1' S4 --> S1'
 
+  S1 --> S2' S2 --> S2' S3 --> S2' S4 --> S2'
 
-  S1 --> S1'
-  S2 --> S1'
-  S3 --> S1'
-  S4 --> S1'
+  S1 --> S3' S2 --> S3' S3 --> S3' S4 --> S3'
 
-  S1 --> S2'
-  S2 --> S2'
-  S3 --> S2'
-  S4 --> S2'
-
-  S1 --> S3'
-  S2 --> S3'
-  S3 --> S3'
-  S4 --> S3'
-
-  S1 --"SelfAttention"--> S4'
-  S2 --> S4'
-  S3 --> S4'
-  S4 --> S4'
+  S1 --"SelfAttention"--> S4' S2 --> S4' S3 --> S4' S4 --> S4'
 
   T1 --> T1'
 
-  T1 --> T2'
-  T2 --> T2'
+  T1 --> T2' T2 --> T2'
 
-  T1 --> T3'
-  T2 --> T3'
-  T3 --> T3'
+  T1 --> T3' T2 --> T3' T3 --> T3'
 
-  T1 --"CasualSelfAttention"--> T4'
-  T2 --> T4'
-  T3 --> T4'
-  T4 --> T4'
+  T1 --"CasualSelfAttention"--> T4' T2 --> T4' T3 --> T4' T4 --> T4'
 
-  S1' --> T1"
-  S2' --> T1"
-  S3' --> T1"
-  S4' --> T1"
-  T1' --> T1"
+  S1' --> T1" S2' --> T1" S3' --> T1" S4' --> T1" T1' --> T1"
 
-  S1' --> T2"
-  S2' --> T2"
-  S3' --> T2"
-  S4' --> T2"
-  T2' --> T2"
+  S1' --> T2" S2' --> T2" S3' --> T2" S4' --> T2" T2' --> T2"
 
-  S1' --> T3"
-  S2' --> T3"
-  S3' --> T3"
-  S4' --> T3"
-  T3' --> T3"
+  S1' --> T3" S2' --> T3" S3' --> T3" S4' --> T3" T3' --> T3"
 
-  S1' --> T4"
-  S2' --> T4"
-  S3' --"CrossAttention"--> T4"
-  S4' --> T4"
-  T4' --> T4"
+  S1' --> T4" S2' --> T4" S3' --"CrossAttention"--> T4" S4' --> T4" T4' --> T4"
 ```
 
 #### 1.2 为什么要对权重缩放并归一化？
 
 #### 1.3 注意力权重掩码有什么作用呢？
+
+```mermaid
+block
+  columns 21
+
+    space:2 R1C1[" "]:0 space:1 R1C2[" "]:0 space:7 R1C3[" "]:0 space:1 R1C4[" "]:0 space:10
+
+    space:21
+
+    S1S1["0"] S1S2["0"] S1S3["0"] S1S4["-♾️"] S1S5["-♾️"] space:3 M1M1["0"] M1M2["-♾️"] M1M3["-♾️"] M1M4["-♾️"] M1M5["-♾️"] space:8
+
+    S2S1["0"] S2S2["0"] S2S3["0"] S2S4["-♾️"] S2S5["-♾️"] space:3  M2M1["0"] M2M2["0"] M2M3["-♾️"] M2M4["-♾️"] M2M5["-♾️"] space:8
+
+    S3S1["0"] S3S2["0"] S3S3["0"] S3S4["-♾️"] S3S5["-♾️"] space:3  M3M1["0"] M3M2["0"] M3M3["0"] M3M4["-♾️"] M3M5["-♾️"] space:8
+
+    S4S1["-♾️"] S4S2["-♾️"] S4S3["-♾️"] S4S4["-♾️"] S4S5["-♾️"] space:3 M4M1["0"] M4M2["0"] M4M3["0"] M4M4["0"] M4M5["-♾️"] space:8
+
+    S5S1["-♾️"] S5S2["-♾️"] S5S3["-♾️"] S5S4["-♾️"] S5S5["-♾️"] space:3 M5M1["0"] M5M2["0"] M5M3["0"] M5M4["0"] M5M5["0"] space:8
+
+    space:13 space:8
+    
+    S1 S2 S3 S4["0"] S5["0"] space:8 space:8
+    
+    space:13 space:8
+
+    T1S1["0"] T1S2["0"] T1S3["0"] T1S4["-♾️"] T1S5["-♾️"] space T1 space T1M1["0"] T1M2["-♾️"] T1M3["-♾️"] T1M4["-♾️"] T1M5["-♾️"] space:3 T1T1["0"] T1T2["0"] T1T3["0"] T1T4["0"] T1T5["-♾️"]
+
+    T2S1["0"] T2S2["0"] T2S3["0"] T2S4["-♾️"] T2S5["-♾️"] space T2 space T2M1["0"] T2M2["0"] T2M3["-♾️"] T2M4["-♾️"] T2M5["-♾️"] space:3 T2T1["0"] T2T2["0"] T2T3["0"] T2T4["0"] T2T5["-♾️"]
+
+    T3S1["0"] T3S2["0"] T3S3["0"] T3S4["-♾️"] T3S5["-♾️"] space T3 space T3M1["0"] T3M2["0"] T3M3["0"] T3M4["-♾️"] T3M5["-♾️"] space:3 T3T1["0"] T3T2["0"] T3T3["0"] T3T4["0"] T3T5["-♾️"]
+
+    T4S1["0"] T4S2["0"] T4S3["0"] T4S4["-♾️"] T4S5["-♾️"] space T4 space T4M1["0"] T4M2["0"] T4M3["0"] T4M4["0"] T4M5["-♾️"] space:3 T4T1["0"] T4T2["0"] T4T3["0"] T4T4["0"] T4T5["-♾️"]
+
+    T5S1["-♾️"] T5S2["-♾️"] T5S3["-♾️"] T5S4["-♾️"] T5S5["-♾️"] space T5["0"] space T5M1["-♾️"] T5M2["-♾️"] T5M3["-♾️"] T5M4["-♾️"] T5M5["-♾️"] space:3 T5T1["-♾️"] T5T2["-♾️"] T5T3["-♾️"] T5T4["-♾️"] T5T5["-♾️"]
+
+    space:21
+
+    space:2 R2C1[" "]:0 space:1 R2C2[" "]:0 space:7 R2C3[" "]:0 space:1 R2C4[" "]:0 space:7 R2C5[" "]:0 space:1 R2C6[" "]:0
+
+    space:21
+
+    S1S4 --- S2S4 S2S4 --- S3S4 S3S4 --- S4S4 S4S4 --- S5S4 S5S4 --- S4 S4 --- T1S4 T1S4 --- T2S4 T2S4 --- T3S4 T3S4 --- T4S4 T4S4 --- T5S4
+
+    S1S5 --- S2S5 S2S5 --- S3S5 S3S5 --- S4S5 S4S5 --- S5S5 S5S5 --- S5 S5 --- T1S5 T1S5 --- T2S5 T2S5 --- T3S5 T3S5 --- T4S5 T4S5 --- T5S5
+
+    T5S1 --- T5S2 T5S2 --- T5S3 T5S3 --- T5S4 T5S4 --- T5S5 T5S5 --- T5 T5 --- T5M1 T5M1 --- T5M2 T5M2 --- T5M3 T5M3 --- T5M4 T5M4 --- T5M5
+
+    T5M5 --- T5T1 T5T1 --- T5T2 T5T2 --- T5T3 T5T3 --- T5T4 T5T4 --- T5T5
+
+    M5M3 --" + "--> T1M3 T3T1 --"+"--> T3M5
+
+    R1C1 --"Self Padding Mask"--- R1C2
+    
+    R1C3 --"CasualSelf Casual Mask"---R1C4
+
+    R2C1 --"Cross Padding Mask"---R2C2
+
+    R2C3 --"CasualSelf Casual+Padding Mask"---R2C4
+
+    R2C5 --"CasualSelf Padding Mask"---R2C6
+```
 
 ### 2. LayerNorm 正则化
 
