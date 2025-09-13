@@ -56,7 +56,7 @@ class Decoder(nn.ModuleList):
 class DecoderBlock(nn.Module):
     def __init__(self):
         super().__init__()
-        self.att1 = AddAndNorm(MultiHeadAttention(casual=True))
+        self.att1 = AddAndNorm(MultiHeadAttention(causal=True))
         self.att2 = AddAndNorm(MultiHeadAttention())
         self.feed = AddAndNorm(FeedForward())
 
@@ -82,16 +82,16 @@ class AddAndNorm(nn.Module):
 
 
 class MultiHeadAttention(nn.ModuleList):
-    def __init__(self, casual=False):
+    def __init__(self, causal=False):
         super().__init__(nn.Linear(model_size, model_size) for _ in range(3))
-        self.lin, self.casual = nn.Linear(model_size, model_size), casual
+        self.lin, self.causal = nn.Linear(model_size, model_size), causal
 
     def forward(self, *qkv, m):
         q, k, v = (
             x.view(*x.shape[:-1], n_head, -1).transpose(-3, -2)
             for x in (f(x) for f, x in zip(self, qkv))
         )
-        m = m | (~m).triu(1) if self.casual else m
+        m = m | (~m).triu(1) if self.causal else m
         w = q @ k.mT / math.sqrt(q.size(-1))
         w = w.masked_fill(m.unsqueeze(-3), float("-inf"))
         w = w.softmax(dim=-1).nan_to_num(0)
