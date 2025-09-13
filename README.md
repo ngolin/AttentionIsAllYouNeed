@@ -1,18 +1,18 @@
 # Attention Is All You Need
 
-Transformer 架构作为大语言模型（LLM）的基石，起源于 [Attention Is All You Need](https://arxiv.org/abs/1706.03762) 这篇论文。随着 LLM 的大热，吸引了很多研究者复现这篇论文。我找了一些来学习，发现这些代码实现要么太过老旧跑不起来，要么太过复杂看不明白。于是我参考 [PyTorch 官方实现](https://github.com/pytorch/pytorch/blob/0d9c95cd7ee299e2e8c09df26d395be8775b506b/torch/nn/modules/transformer.py#L57)等资料，提供了这个**忠于原文、聚焦核心**的实现，舍弃一切预处理、工程优化等无关内容，力求简单明了，以便学习理解。
+Transformer 模型架构作为大语言模型（LLM）的基石，起源于 [Attention Is All You Need](https://arxiv.org/abs/1706.03762) 这篇论文。随着 LLM 的大热，吸引了很多研究者复现这篇论文。我找了一些来学习，但那些代码实现要么太过老旧跑不起来，要么太过复杂看不明白。于是我参考 [PyTorch 官方实现](https://github.com/pytorch/pytorch/blob/0d9c95cd7ee299e2e8c09df26d395be8775b506b/torch/nn/modules/transformer.py#L57)等资料，搞出这个**忠于原文、聚焦核心**的实现，舍弃一切预处理、工程优化等无关内容，力求简单明了，以便学习理解。
 
-我将 PyTorch 官方实现的 1234 行代码压缩 10 倍，以 **124 行代码**实现了全部细节，并且代码结构尽力贴近原文描述。原来很多细节在原始论文中没有提及，在代码实现中才能看到。我用中译英验证了其有效性和正确性。由于中英两种语言差异较大，中译英是较为困难的任务，我在 [Seq2Seq(RNN + Attention)](https://github.com/ngolin/Seq2seq/) 上难以达到的效果，在 Transformer 上却轻易达到，体现了 Transformer 的强大。
+我重写 PyTorch 官方代码，压缩 10 倍，以 **124 行代码**涵盖模型的全部细节，并且代码结构尽力贴近原文描述。原来很多细节在原始论文中没有提及，在代码实现中才能看到。我用中译英验证了其有效性和正确性。由于中英两种语言差异较大，中译英是较为困难的任务，我在 [Seq2Seq(RNN + Attention)](https://github.com/ngolin/Seq2seq/) 上难以达到的效果，在 Transformer 上却轻松达到，体现了 Transformer 的强大。
 
 ## 一、快速开始
 
-模型实现：[model.py](./model.py)，124 行代码实现模型的所有细节，查看模型定义：
+**模型定义：**[model.py](./model.py)，需配合原文阅读代码无额外注释，查看模型定义：
 
 > ```bash
 > $ python model.py
 > ```
 
-模型验证：[main.ipynb](./main.ipynb)，中译英验证模型实现是否正确，查看数据资料：
+**模型验证：**[main.ipynb](./main.ipynb)，中译英验证模型实现是否正确，查看数据概要：
 
 > ```bash
 > $ python -m dataset
@@ -28,7 +28,7 @@ Transformer 架构作为大语言模型（LLM）的基石，起源于 [Attention
 2. 为什么要对权重缩放并归一化？
 3. 注意力权重掩码有什么作用呢？
 
-万变不离其宗，无论 Transformer/Attention 设计得多么精炒，我们依然可以看到那个简单而朴素的 FNN 影子。这是深度学习的魅力所在，更是一个强大的启示。当我们遇到新的问题或面临全新领域时，或许也要回到 FNN 的基础上进行求解和创新，通过拆解其层级结构，调整其连接方式，使 FNN 更有效地表征和适配数据；通过权重矩阵的多层次感知和激活函数的非线性变换，使 FNN 更高效地聚合和传递信息，从而赋予新的机制，解决新的问题。
+万变不离其宗，无论 Transformer/Attention 设计得多么精炒，我们依然可以看到那个简单而朴素的 FNN 影子。这是深度学习的魅力所在，更是一个强大的启示。当我们遇到新的问题或面临全新领域时，或许也要回到 FNN 的基础上进行求解和创新，通过拆解其层级结构，调整其连接方式，使 FNN 更有效地表征和适配数据；通过权重矩阵的多信号感知和激活函数的非线性变换，使 FNN 更高效地聚合和传递信息，从而赋予新的机制，解决新的问题。
 
 #### 1.1 如何来理解注意力机制的本质？
 
@@ -38,7 +38,7 @@ Transformer 架构作为大语言模型（LLM）的基石，起源于 [Attention
 | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 |                                                                             $\mathbf{Q} = \text{Linear}(\mathbf{S})$<br/>$\mathbf{K} = \text{Linear}(\mathbf{S})$<br/>$\mathbf{V} = \text{Linear}(\mathbf{S})$                                                                              |                                                                                                                       $\mathbf{Q} = \text{Linear}(\mathbf{T})$<br/>$\mathbf{K} = \text{Linear}(\mathbf{T})$<br/>$\mathbf{V} = \text{Linear}(\mathbf{T})$                                                                                                                        |                                                                                               $\mathbf{Q} = \text{Linear}(\mathbf{T} ^ \prime)$<br/>$\mathbf{K} = \text{Linear}(\mathbf{S} ^ \prime)$<br/>$\mathbf{V} = \text{Linear}(\mathbf{S} ^ \prime)$                                                                                               |
 | $\mathbf{S} = \text{SelfAttention}(\mathbf{S}) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}})$<br/>$W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leqslant (i, j) \leqslant S$ | $\mathbf{T} = \text{CasualSelfAttention}(\mathbf{T}) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}} + \mathbf{M})$ <br/> $W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leqslant (i, j) \leqslant T$ <br/> $M _ {ij} = 0 \text{ if } i < j \text{ else } {-\infty}$ | $\mathbf{T} ^ \prime = \text{CrossAttention}(\mathbf{T} ^ \prime, \mathbf{S} ^ \prime) = \mathbf{W} ^ \prime \cdot \mathbf{V}$<br/>$\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K} ^ T}{\sqrt{d = 512}})$<br/>$W _ {ij} = \mathbf{Q} _ i \cdot \mathbf{K} _ j, 1 \leqslant i \leqslant T, 1 \leqslant j \leqslant S$ |
-|                                                                                                                      $\mathbf{S} ^ \prime = \text{Linear}(\mathbf{S})$                                                                                                                      |                                                                                                                                                                $\mathbf{T} ^ \prime = \text{Linear}(\mathbf{T})$                                                                                                                                                                |                                                                                                                                                $\mathbf{T} ^ \prime = \text{Linear}(\mathbf{T} ^ \prime)$                                                                                                                                                 |
+|                                                                                                                      $\mathbf{S} ^ \prime = \text{Linear}(\mathbf{S})$                                                                                                                      |                                                                                                                                                                $\mathbf{T} ^ \prime = \text{Linear}(\mathbf{T})$                                                                                                                                                                |                                                                                                                                            $\mathbf{T} ^ {\prime \prime} = \text{Linear}(\mathbf{T} ^ \prime)$                                                                                                                                            |
 
 在 Transformer 架构中，编码器有一种自注意力，解码器有一种因果自注意力和交叉注意力。每种注意力都有 6 层 8 头，共 48 个注意力。所谓的 6 层，其实就是重复 6 次；正因为不止 1 头，才叫**多头注意力**。所谓的 8 头，就是把词嵌入的 512 维分为 8 组每组 64 维分别进行注意力加权求和，可以理解为 8 头注意力支持对一个 Token 多达 8 个不同的语义分别应用注意力机制。
 
@@ -131,50 +131,94 @@ S3',S',512
 
 ```mermaid
 block
-columns 21
+columns 36
   S1 space:4
   S2 space:4
   S3 space:4
   S4 space:4
-  S5
+  T1 space:4
+  T2 space:4
+  T3 space:4
+  T4
 
-  space:84
+  space:144
 
   S1' space:4
   S2' space:4
   S3' space:4
   S4' space:4
-  S5'
+  T1' space:4
+  T2' space:4
+  T3' space:4
+  T4'
+
+  space:288
+
+  space:10
+  T1" space:4
+  T2" space:4
+  T3" space:4
+  T4"
+
+
 
   S1 --> S1'
   S2 --> S1'
   S3 --> S1'
   S4 --> S1'
-  S5 --> S1'
 
   S1 --> S2'
   S2 --> S2'
   S3 --> S2'
   S4 --> S2'
-  S5 --> S2'
 
   S1 --> S3'
   S2 --> S3'
   S3 --> S3'
   S4 --> S3'
-  S5 --> S3'
 
-  S1 --> S4'
+  S1 --"SelfAttention"--> S4'
   S2 --> S4'
   S3 --> S4'
   S4 --> S4'
-  S5 --> S4'
 
-  S1 --> S5'
-  S2 --> S5'
-  S3 --> S5'
-  S4 --> S5'
-  S5 --> S5'
+  T1 --> T1'
+
+  T1 --> T2'
+  T2 --> T2'
+
+  T1 --> T3'
+  T2 --> T3'
+  T3 --> T3'
+
+  T1 --"CasualSelfAttention"--> T4'
+  T2 --> T4'
+  T3 --> T4'
+  T4 --> T4'
+
+  S1' --> T1"
+  S2' --> T1"
+  S3' --> T1"
+  S4' --> T1"
+  T1' --> T1"
+
+  S1' --> T2"
+  S2' --> T2"
+  S3' --> T2"
+  S4' --> T2"
+  T2' --> T2"
+
+  S1' --> T3"
+  S2' --> T3"
+  S3' --> T3"
+  S4' --> T3"
+  T3' --> T3"
+
+  S1' --> T4"
+  S2' --> T4"
+  S3' --"CrossAttention"--> T4"
+  S4' --> T4"
+  T4' --> T4"
 ```
 
 #### 1.2 为什么要对权重缩放并归一化？
