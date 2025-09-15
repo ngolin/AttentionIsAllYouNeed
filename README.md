@@ -169,6 +169,25 @@ columns 36
 
 #### 1.2 为什么要对权重缩放并归一化？
 
+在注意力机制中，准确来说 $\mathbf{W} = \mathbf{Q} \cdot \mathbf{K}$ 叫注意力分数，对注意力分数除以 $\sqrt{d = 512}$ 进行缩放（Scaling）再用 Softmax 归一化（Normalization），也就是 $\mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W = \mathbf{Q} \cdot \mathbf{K}}}{\sqrt{d = 512}})$ 才叫注意力权重。缩放修正注意力分数的方差，归一化再将其转化为有意义的概率分布，共同确保了注意力机制的有效性和稳定性，这就是**缩放点积注意力**（Scaled Dot-Product Attention）。
+
+$$
+\mathbf{Q} = \text{Linear}(\mathbf{S}), \mathbf{K} = \text{Linear}(\mathbf{S}), \mathbf{W} ^ \prime = \text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K}}{\sqrt{d = 512}})
+$$
+
+首先，为什么要在 Softmax 前除以 $\sqrt{d = 512}$ 进行缩放。原文提到，假设 $\mathbf{Q}$, $\mathbf{K}$ 都是均值为 0, 方差为 1 的独立随机变量，那么点积 $\mathbf{Q} \cdot \mathbf{K}$ 的均值是 0，方差是 $d = 512$。由于 Softmax 对极端输入值非常敏感，方差变大将可能导致 Softmax 梯度消失问题。通过除以 $\sqrt{d = 512}$ 可将方差拉回到 1 左右，Softmax 的输出处于一个梯度较大的值域内，使模型训练更稳定。
+
+$$
+a _ i = \text{Softmax}(z _ i) = \frac{e ^ {z _ i}}{\sum \limits _ j e ^ {z _ j}}, \frac{\partial a _ i}{\partial z _ j} = \begin{cases} a _ i(1 - a _ j) & \text{if } i = j \\
+-a _ i a _ j & \text{if } i \neq j \end{cases}
+$$
+
+其次，为什么要用 Softmax 将注意力分数归一化。归一化的目的是将注意力分数转换为一个概率分布。这样，每个值都有一个清晰的解释：代表其被关注的概率或权重。转换后的概率分布直接用于对 $\mathbf{V}$ 向量进行加权求和, $\text{Softmax}(\frac{\mathbf{W} = \mathbf{Q} \cdot \mathbf{K}}{\sqrt{d = 512}}) \cdot \mathbf{V}$。权重之和为 1 确保了加权求和操作是稳定和合理的。如果权重没有归一化，总和可能很大或很小，会导致 $\mathbf{V}$ 向量的缩放不可控，破坏模型的稳定性。
+
+$$
+\mathbf{V} = \text{Linear}(\mathbf{S}), \mathbf{S} ^ \prime _ i = \sum \limits _ j W ^ \prime_ {ij} \cdot \mathbf{V} _ j, \sum \limits _ j W ^ \prime_ {ij} = 1
+$$
+
 #### 1.3 注意力权重掩码有什么作用呢？
 
 ```mermaid
@@ -179,31 +198,31 @@ block
 
     space:21
 
-    S1S1["0"] S1S2["0"] S1S3["0"] S1S4["-♾️"] S1S5["-♾️"] space:3 M1M1["0"] M1M2["-♾️"] M1M3["-♾️"] M1M4["-♾️"] M1M5["-♾️"] space:8
+    S1S1["0"] S1S2["0"] S1S3["0"] S1S4["−∞"] S1S5["−∞"] space:3 M1M1["0"] M1M2["−∞"] M1M3["−∞"] M1M4["−∞"] M1M5["−∞"] space:8
 
-    S2S1["0"] S2S2["0"] S2S3["0"] S2S4["-♾️"] S2S5["-♾️"] space:3  M2M1["0"] M2M2["0"] M2M3["-♾️"] M2M4["-♾️"] M2M5["-♾️"] space:8
+    S2S1["0"] S2S2["0"] S2S3["0"] S2S4["−∞"] S2S5["−∞"] space:3  M2M1["0"] M2M2["0"] M2M3["−∞"] M2M4["−∞"] M2M5["−∞"] space:8
 
-    S3S1["0"] S3S2["0"] S3S3["0"] S3S4["-♾️"] S3S5["-♾️"] space:3  M3M1["0"] M3M2["0"] M3M3["0"] M3M4["-♾️"] M3M5["-♾️"] space:8
+    S3S1["0"] S3S2["0"] S3S3["0"] S3S4["−∞"] S3S5["−∞"] space:3  M3M1["0"] M3M2["0"] M3M3["0"] M3M4["−∞"] M3M5["−∞"] space:8
 
-    S4S1["-♾️"] S4S2["-♾️"] S4S3["-♾️"] S4S4["-♾️"] S4S5["-♾️"] space:3 M4M1["0"] M4M2["0"] M4M3["0"] M4M4["0"] M4M5["-♾️"] space:8
+    S4S1["−∞"] S4S2["−∞"] S4S3["−∞"] S4S4["−∞"] S4S5["−∞"] space:3 M4M1["0"] M4M2["0"] M4M3["0"] M4M4["0"] M4M5["−∞"] space:8
 
-    S5S1["-♾️"] S5S2["-♾️"] S5S3["-♾️"] S5S4["-♾️"] S5S5["-♾️"] space:3 M5M1["0"] M5M2["0"] M5M3["0"] M5M4["0"] M5M5["0"] space:8
+    S5S1["−∞"] S5S2["−∞"] S5S3["−∞"] S5S4["−∞"] S5S5["−∞"] space:3 M5M1["0"] M5M2["0"] M5M3["0"] M5M4["0"] M5M5["0"] space:8
 
     space:13 space:8
-    
+
     S1 S2 S3 S4["0"] S5["0"] space:8 space:8
-    
+
     space:13 space:8
 
-    T1S1["0"] T1S2["0"] T1S3["0"] T1S4["-♾️"] T1S5["-♾️"] space T1 space T1M1["0"] T1M2["-♾️"] T1M3["-♾️"] T1M4["-♾️"] T1M5["-♾️"] space:3 T1T1["0"] T1T2["0"] T1T3["0"] T1T4["0"] T1T5["-♾️"]
+    T1S1["0"] T1S2["0"] T1S3["0"] T1S4["−∞"] T1S5["−∞"] space T1 space T1M1["0"] T1M2["−∞"] T1M3["−∞"] T1M4["−∞"] T1M5["−∞"] space:3 T1T1["0"] T1T2["0"] T1T3["0"] T1T4["0"] T1T5["−∞"]
 
-    T2S1["0"] T2S2["0"] T2S3["0"] T2S4["-♾️"] T2S5["-♾️"] space T2 space T2M1["0"] T2M2["0"] T2M3["-♾️"] T2M4["-♾️"] T2M5["-♾️"] space:3 T2T1["0"] T2T2["0"] T2T3["0"] T2T4["0"] T2T5["-♾️"]
+    T2S1["0"] T2S2["0"] T2S3["0"] T2S4["−∞"] T2S5["−∞"] space T2 space T2M1["0"] T2M2["0"] T2M3["−∞"] T2M4["−∞"] T2M5["−∞"] space:3 T2T1["0"] T2T2["0"] T2T3["0"] T2T4["0"] T2T5["−∞"]
 
-    T3S1["0"] T3S2["0"] T3S3["0"] T3S4["-♾️"] T3S5["-♾️"] space T3 space T3M1["0"] T3M2["0"] T3M3["0"] T3M4["-♾️"] T3M5["-♾️"] space:3 T3T1["0"] T3T2["0"] T3T3["0"] T3T4["0"] T3T5["-♾️"]
+    T3S1["0"] T3S2["0"] T3S3["0"] T3S4["−∞"] T3S5["−∞"] space T3 space T3M1["0"] T3M2["0"] T3M3["0"] T3M4["−∞"] T3M5["−∞"] space:3 T3T1["0"] T3T2["0"] T3T3["0"] T3T4["0"] T3T5["−∞"]
 
-    T4S1["0"] T4S2["0"] T4S3["0"] T4S4["-♾️"] T4S5["-♾️"] space T4 space T4M1["0"] T4M2["0"] T4M3["0"] T4M4["0"] T4M5["-♾️"] space:3 T4T1["0"] T4T2["0"] T4T3["0"] T4T4["0"] T4T5["-♾️"]
+    T4S1["0"] T4S2["0"] T4S3["0"] T4S4["−∞"] T4S5["−∞"] space T4 space T4M1["0"] T4M2["0"] T4M3["0"] T4M4["0"] T4M5["−∞"] space:3 T4T1["0"] T4T2["0"] T4T3["0"] T4T4["0"] T4T5["−∞"]
 
-    T5S1["-♾️"] T5S2["-♾️"] T5S3["-♾️"] T5S4["-♾️"] T5S5["-♾️"] space T5["0"] space T5M1["-♾️"] T5M2["-♾️"] T5M3["-♾️"] T5M4["-♾️"] T5M5["-♾️"] space:3 T5T1["-♾️"] T5T2["-♾️"] T5T3["-♾️"] T5T4["-♾️"] T5T5["-♾️"]
+    T5S1["−∞"] T5S2["−∞"] T5S3["−∞"] T5S4["−∞"] T5S5["−∞"] space T5["0"] space T5M1["−∞"] T5M2["−∞"] T5M3["−∞"] T5M4["−∞"] T5M5["−∞"] space:3 T5T1["−∞"] T5T2["−∞"] T5T3["−∞"] T5T4["−∞"] T5T5["−∞"]
 
     space:21
 
@@ -222,7 +241,7 @@ block
     M5M3 --" + "--> T1M3 T3T1 --"+"--> T3M5
 
     R1C1 --"Self Padding Mask"--- R1C2
-    
+
     R1C3 --"CasualSelf Casual Mask"---R1C4
 
     R2C1 --"Cross Padding Mask"---R2C2
