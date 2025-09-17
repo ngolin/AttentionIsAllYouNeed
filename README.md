@@ -196,23 +196,42 @@ $$
 block
   columns 15
 
-    space S1S1["0"] S1S2["0"] S1S3["0"] S1S4["−∞"] S1S5["−∞"] space:3 M1M1["0"] M1M2["−∞"] M1M3["−∞"] M1M4["−∞"] M1M5["−∞"] space:1
+    space M1M1["0"] M1M2["−∞"] M1M3["−∞"] M1M4["−∞"] M1M5["−∞"] space:3 S1S1["0"] S1S2["0"] S1S3["0"] S1S4["−∞"] S1S5["−∞"] space
 
-    space S2S1["0"] S2S2["0"] S2S3["0"] S2S4["−∞"] S2S5["−∞"] space:3  M2M1["0"] M2M2["0"] M2M3["−∞"] M2M4["−∞"] M2M5["−∞"] space:1
+    space  M2M1["0"] M2M2["0"] M2M3["−∞"] M2M4["−∞"] M2M5["−∞"] space:3 S2S1["0"] S2S2["0"] S2S3["0"] S2S4["−∞"] S2S5["−∞"] space
 
-    space S3S1["0"] S3S2["0"] S3S3["0"] S3S4["−∞"] S3S5["−∞"] space:3  M3M1["0"] M3M2["0"] M3M3["0"] M3M4["−∞"] M3M5["−∞"] space:1
+    space  M3M1["0"] M3M2["0"] M3M3["0"] M3M4["−∞"] M3M5["−∞"] space:3 S3S1["0"] S3S2["0"] S3S3["0"] S3S4["−∞"] S3S5["−∞"] space
 
-    space S4S1["−∞"] S4S2["−∞"] S4S3["−∞"] S4S4["−∞"] S4S5["−∞"] space:3 M4M1["0"] M4M2["0"] M4M3["0"] M4M4["0"] M4M5["−∞"] space:1
+    space M4M1["0"] M4M2["0"] M4M3["0"] M4M4["0"] M4M5["−∞"] space:3 S4S1["−∞"] S4S2["−∞"] S4S3["−∞"] S4S4["−∞"] S4S5["−∞"] space
 
-    space S5S1["−∞"] S5S2["−∞"] S5S3["−∞"] S5S4["−∞"] S5S5["−∞"] space:3 M5M1["0"] M5M2["0"] M5M3["0"] M5M4["0"] M5M5["0"] space:1
+    space M5M1["0"] M5M2["0"] M5M3["0"] M5M4["0"] M5M5["0"] space:3 S5S1["−∞"] S5S2["−∞"] S5S3["−∞"] S5S4["−∞"] S5S5["−∞"] space
 
     space:15
 
     space:3 R1C1[" "]:0 space:1 R1C2[" "]:0 space:7 R1C3[" "]:0 space:1 R1C4[" "]:0 space:3
 
-    R1C1 --"填充掩码"--- R1C2
+    R1C1 --"因果掩码"---R1C2
 
-    R1C3 --"因果掩码"---R1C4
+    R1C3 --"填充掩码"---R1C4
+```
+
+首先，因果掩码主要用于解码器的因果自注意力，其核心目的是确保模型在训练时遵循推理时自回归生成的性质，不要“偷看”未来的信息。模型在推理时只能依赖前面已生成的 Tokens 逐个 Token 生成目标序列；但在训练时，整个目标序列是已知的，在训练当前 Token 时，不仅前面的 Tokens 是已知的，后面的 Tokens 也是已知的，所以要用因果掩码把后面的 Tokens 屏蔽掉，以防信息泄露导致模型在推理时性能下降。
+
+```mermaid
+block
+  columns 25
+
+    W11 W12 W13 W14 W15 space M1M1["0"] M1M2["−∞"] M1M3["−∞"] M1M4["−∞"] M1M5["−∞"] space WM1M1["W11"] WM1M2["−∞"] WM1M3["−∞"] WM1M4["−∞"] WM1M5["−∞"] space:3 W'11 W'12["0"] W'13["0"] W'14["0"] W'15["0"]
+
+    W21 W22 W23 W24 W25 space M2M1["0"] M2M2["0"] M2M3["−∞"] M2M4["−∞"] M2M5["−∞"] space WM2M1["W21"] WM2M2["W22"] WM2M3["−∞"] WM2M4["−∞"] WM2M5["−∞"] space:3 W'21 W'22 W'23["0"] W'24["0"] W'25["0"]
+
+    W31 W32 W33 W34 W35 +(("+")) M3M1["0"] M3M2["0"] M3M3["0"] M3M4["−∞"] M3M5["−∞"] =(("=")) WM3M1["W31"] WM3M2["W32"] WM3M3["W33"] WM3M4["−∞"] WM3M5["−∞"] space:3 W'31 W'32 W'33 W'34["0"] W'35["0"]
+
+    W41 W42 W43 W44 W45 space M4M1["0"] M4M2["0"] M4M3["0"] M4M4["0"] M4M5["−∞"] space WM4M1["W41"] WM4M2["W42"] WM4M3["W43"] WM4M4["W44"] WM4M5["−∞"] space:3 W'41 W'42 W'43 W'44 W'45["0"]
+
+    W51 W52 W53 W54 W55 space M5M1["0"] M5M2["0"] M5M3["0"] M5M4["0"] M5M5["0"] space WM5M1["W51"] WM5M2["W52"] WM5M3["W53"] WM5M4["W54"] WM5M5["W55"] space:3 W'51 W'52 W'53 W'54 W'55
+
+    WM3M5 --"Softmax"---> W'31
 ```
 
 ### 2. LayerNorm 正则化
